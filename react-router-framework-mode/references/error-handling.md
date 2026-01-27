@@ -1,3 +1,5 @@
+TODO: needs to be reviewed
+
 # Error Handling
 
 React Router catches errors in loaders, actions, and rendering, then displays them in error boundaries.
@@ -15,7 +17,9 @@ export function ErrorBoundary() {
   if (isRouteErrorResponse(error)) {
     return (
       <div>
-        <h1>{error.status} {error.statusText}</h1>
+        <h1>
+          {error.status} {error.statusText}
+        </h1>
         <p>{error.data}</p>
       </div>
     );
@@ -26,9 +30,7 @@ export function ErrorBoundary() {
       <div>
         <h1>Error</h1>
         <p>{error.message}</p>
-        {process.env.NODE_ENV === "development" && (
-          <pre>{error.stack}</pre>
-        )}
+        {process.env.NODE_ENV === "development" && <pre>{error.stack}</pre>}
       </div>
     );
   }
@@ -44,11 +46,11 @@ Throw Response objects for expected errors:
 ```tsx
 export async function loader({ params }: Route.LoaderArgs) {
   const product = await db.getProduct(params.id);
-  
+
   if (!product) {
     throw new Response("Product not found", { status: 404 });
   }
-  
+
   return product;
 }
 ```
@@ -60,14 +62,14 @@ import { data } from "react-router";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const product = await db.getProduct(params.id);
-  
+
   if (!product) {
     throw data(
       { message: "Product not found", productId: params.id },
-      { status: 404 }
+      { status: 404 },
     );
   }
-  
+
   return product;
 }
 ```
@@ -123,7 +125,9 @@ export function ErrorBoundary() {
       <body>
         <h1>Something went wrong</h1>
         {isRouteErrorResponse(error) ? (
-          <p>{error.status}: {error.data}</p>
+          <p>
+            {error.status}: {error.data}
+          </p>
         ) : (
           <p>An unexpected error occurred</p>
         )}
@@ -171,14 +175,11 @@ import { data } from "react-router";
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const email = formData.get("email")?.toString() ?? "";
-  
+
   if (!email.includes("@")) {
-    return data(
-      { errors: { email: "Invalid email" } },
-      { status: 400 }
-    );
+    return data({ errors: { email: "Invalid email" } }, { status: 400 });
   }
-  
+
   // Success
   await createUser({ email });
   return redirect("/welcome");
@@ -191,7 +192,7 @@ Access in component via `fetcher.data`:
 function SignupForm() {
   const fetcher = useFetcher();
   const errors = fetcher.data?.errors;
-  
+
   return (
     <fetcher.Form method="post">
       <input type="email" name="email" />

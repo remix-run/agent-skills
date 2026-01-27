@@ -1,37 +1,89 @@
-# Routing in React Router Framework Mode
+# Routing
 
-Routes are configured in `app/routes.ts` using the route helpers.
+If using `@react-router/fs-routes` see https://reactrouter.com/how-to/file-route-conventions
 
-## Basic Route Configuration
+## Route Configuration
+
+Routes are configured in `app/routes.ts`. Each route has a URL pattern and a file path to the route module:
 
 ```ts
 import { type RouteConfig, route } from "@react-router/dev/routes";
 
 export default [
-  route("about", "./routes/about.tsx"),
-  route("products/:id", "./routes/product.tsx"),
+  route("some/path", "./some/file.tsx"),
+  // pattern ^           ^ module file
 ] satisfies RouteConfig;
 ```
 
-## Nested Routes
-
-Use the third argument to nest routes:
+### Complete Example
 
 ```ts
-import { type RouteConfig, route, index } from "@react-router/dev/routes";
+import {
+  type RouteConfig,
+  route,
+  index,
+  layout,
+  prefix,
+} from "@react-router/dev/routes";
 
 export default [
-  route("dashboard", "./routes/dashboard.tsx", [
-    index("./routes/dashboard-home.tsx"),
-    route("settings", "./routes/dashboard-settings.tsx"),
+  index("./home.tsx"),
+  route("about", "./about.tsx"),
+
+  layout("./auth/layout.tsx", [
+    route("login", "./auth/login.tsx"),
+    route("register", "./auth/register.tsx"),
+  ]),
+
+  ...prefix("concerts", [
+    index("./concerts/home.tsx"),
+    route(":city", "./concerts/city.tsx"),
+    route("trending", "./concerts/trending.tsx"),
   ]),
 ] satisfies RouteConfig;
 ```
 
-The parent renders an `<Outlet />` for child routes:
+### Combining with File-Based Routes
+
+```ts
+import { type RouteConfig, route } from "@react-router/dev/routes";
+import { flatRoutes } from "@react-router/fs-routes";
+
+export default [
+  route("/", "./home.tsx"),
+  ...(await flatRoutes()),
+] satisfies RouteConfig;
+```
+
+## Route Helpers
+
+| Helper                         | Purpose             | Adds URL segment? |
+| ------------------------------ | ------------------- | ----------------- |
+| `route(path, file, children?)` | Standard route      | Yes               |
+| `index(file)`                  | Default child route | No                |
+| `layout(file, children)`       | Shared UI wrapper   | No                |
+| `prefix(path, children)`       | Path prefix only    | Yes               |
+
+## Nested Routes
+
+Child routes are passed as the third argument:
+
+```ts
+export default [
+  route("dashboard", "./dashboard.tsx", [
+    index("./dashboard-home.tsx"),
+    route("settings", "./dashboard-settings.tsx"),
+  ]),
+] satisfies RouteConfig;
+```
+
+Parent path is automatically included: creates `/dashboard` and `/dashboard/settings`.
+
+### Outlet
+
+Child routes render through `<Outlet />` in the parent:
 
 ```tsx
-// app/routes/dashboard.tsx
 import { Outlet } from "react-router";
 
 export default function Dashboard() {
@@ -44,115 +96,134 @@ export default function Dashboard() {
 }
 ```
 
+## Root Route
+
+Every route in `routes.ts` is nested inside `app/root.tsx`.
+
 ## Layout Routes
 
-Routes without a path that only provide shared UI:
+Create nesting without adding URL segments:
 
 ```ts
-import { type RouteConfig, route, layout } from "@react-router/dev/routes";
-
 export default [
-  layout("./routes/marketing-layout.tsx", [
-    route("about", "./routes/about.tsx"),
-    route("pricing", "./routes/pricing.tsx"),
+  layout("./marketing/layout.tsx", [
+    index("./marketing/home.tsx"), // renders at /
+    route("contact", "./marketing/contact.tsx"), // renders at /contact
   ]),
 ] satisfies RouteConfig;
 ```
+
+Both routes render into `marketing/layout.tsx`'s `<Outlet />`.
 
 ## Index Routes
 
-Default child route when parent path matches exactly:
+Render at the parent's URL (default child):
 
 ```ts
-import { type RouteConfig, route, index } from "@react-router/dev/routes";
-
 export default [
-  route("dashboard", "./routes/dashboard.tsx", [
-    index("./routes/dashboard-home.tsx"), // matches /dashboard
-    route("settings", "./routes/settings.tsx"), // matches /dashboard/settings
+  index("./home.tsx"), // renders at /
+  route("dashboard", "./dashboard.tsx", [
+    index("./dashboard-home.tsx"), // renders at /dashboard
+    route("settings", "./settings.tsx"), // renders at /dashboard/settings
   ]),
 ] satisfies RouteConfig;
 ```
 
+Index routes cannot have children.
+
 ## Route Prefixes
 
-Group routes under a path without a layout:
+Add a path prefix without introducing a parent route:
 
 ```ts
-import { type RouteConfig, route, prefix } from "@react-router/dev/routes";
-
 export default [
-  prefix("api", [
-    route("users", "./routes/api/users.tsx"),
-    route("posts", "./routes/api/posts.tsx"),
+  ...prefix("projects", [
+    index("./projects/home.tsx"), // /projects
+    route(":pid", "./projects/project.tsx"), // /projects/:pid
   ]),
+] satisfies RouteConfig;
+```
+
+Equivalent to:
+
+```ts
+export default [
+  route("projects", "./projects/home.tsx"),
+  route("projects/:pid", "./projects/project.tsx"),
 ] satisfies RouteConfig;
 ```
 
 ## Dynamic Segments
 
-Capture URL parameters with `:param`:
+Segments starting with `:` are dynamic and available via `params`:
 
 ```ts
-route("products/:productId", "./routes/product.tsx")
-route("users/:userId/posts/:postId", "./routes/post.tsx")
+route("teams/:teamId", "./team.tsx");
 ```
 
-Access in loaders and components:
-
 ```tsx
+import type { Route } from "./+types/team";
+
 export async function loader({ params }: Route.LoaderArgs) {
-  const product = await db.getProduct(params.productId);
-  return product;
+  // params.teamId is typed as string
+  return fetchTeam(params.teamId);
 }
 
-export default function Product({ loaderData }: Route.ComponentProps) {
-  return <h1>{loaderData.name}</h1>;
+export default function Team({ params }: Route.ComponentProps) {
+  return <h1>Team {params.teamId}</h1>;
 }
+```
+
+Multiple dynamic segments:
+
+```ts
+route("c/:categoryId/p/:productId", "./product.tsx");
+// params: { categoryId: string; productId: string }
 ```
 
 ## Optional Segments
 
-Make segments optional with `?`:
+Add `?` to make a segment optional:
 
 ```ts
-route("products/:category?", "./routes/products.tsx")
+route(":lang?/categories", "./categories.tsx");
+// matches /categories and /en/categories
+
+route("users/:userId/edit?", "./user.tsx");
+// matches /users/123 and /users/123/edit
 ```
 
-Matches both `/products` and `/products/electronics`.
+## Splats (Catch-All)
 
-## Splat Routes (Catch-All)
-
-Match any remaining path with `*`:
+Match any remaining path with `/*`:
 
 ```ts
-route("files/*", "./routes/files.tsx")
+route("files/*", "./files.tsx");
 ```
-
-Access the matched path via `params["*"]`:
 
 ```tsx
 export async function loader({ params }: Route.LoaderArgs) {
   const filePath = params["*"]; // e.g., "docs/intro.md"
   return getFile(filePath);
 }
+
+// Destructure with rename
+const { "*": splat } = params;
 ```
 
-## File-Based Route Conventions
-
-Optionally use `@react-router/fs-routes` for file-based routing:
+### 404 Catch-All
 
 ```ts
-// app/routes.ts
-import { flatRoutes } from "@react-router/fs-routes";
-
-export default flatRoutes();
+route("*", "./catchall.tsx");
 ```
 
-File naming conventions:
-- `_index.tsx` → Index route
-- `about.tsx` → `/about`
-- `products.$id.tsx` → `/products/:id`
-- `products_.new.tsx` → `/products/new` (escapes nesting)
-- `_auth.login.tsx` → `/login` (pathless layout)
-- `$.tsx` → Splat route
+```tsx
+export function loader() {
+  throw new Response("Page not found", { status: 404 });
+}
+```
+
+## See Also
+
+- [Route Module](./route-modules.md) - Route module exports
+- [React Router Routing Documentation](https://reactrouter.com/start/framework/routing)

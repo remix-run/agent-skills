@@ -1,3 +1,5 @@
+TODO: needs to be reviewed
+
 # Navigation
 
 React Router provides several ways to navigate between routes.
@@ -28,12 +30,7 @@ function Nav() {
 - `prefetch` - `"none"`, `"intent"`, `"render"`, `"viewport"`
 
 ```tsx
-<Link 
-  to="/dashboard" 
-  replace
-  state={{ from: "home" }}
-  prefetch="intent"
->
+<Link to="/dashboard" replace state={{ from: "home" }} prefetch="intent">
   Dashboard
 </Link>
 ```
@@ -48,14 +45,14 @@ import { NavLink } from "react-router";
 function Nav() {
   return (
     <nav>
-      <NavLink 
-        to="/" 
+      <NavLink
+        to="/"
         end
-        className={({ isActive }) => isActive ? "active" : ""}
+        className={({ isActive }) => (isActive ? "active" : "")}
       >
         Home
       </NavLink>
-      
+
       <NavLink
         to="/products"
         className={({ isActive, isPending }) =>
@@ -79,9 +76,7 @@ function Nav() {
 ```tsx
 <NavLink to="/messages">
   {({ isActive, isPending }) => (
-    <span>
-      Messages {isPending && <Spinner />}
-    </span>
+    <span>Messages {isPending && <Spinner />}</span>
   )}
 </NavLink>
 ```
@@ -95,12 +90,12 @@ import { useNavigate } from "react-router";
 
 function LogoutButton() {
   const navigate = useNavigate();
-  
+
   async function handleLogout() {
     await logout();
     navigate("/login");
   }
-  
+
   return <button onClick={handleLogout}>Logout</button>;
 }
 ```
@@ -121,7 +116,7 @@ navigate("/checkout", { state: { cartId: "abc" } });
 
 // Go back/forward
 navigate(-1); // Back
-navigate(1);  // Forward
+navigate(1); // Forward
 ```
 
 ## redirect Function
@@ -133,11 +128,11 @@ import { redirect } from "react-router";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const user = await getUser(request);
-  
+
   if (!user) {
     throw redirect("/login");
   }
-  
+
   return user;
 }
 
@@ -203,7 +198,7 @@ import { useLocation } from "react-router";
 function Checkout() {
   const location = useLocation();
   const { from } = location.state || {};
-  
+
   return (
     <div>
       <h1>Checkout</h1>

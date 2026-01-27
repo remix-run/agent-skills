@@ -1,3 +1,5 @@
+TODO: needs to be reviewed
+
 # Rendering Strategies
 
 React Router supports three rendering strategies, configured in `react-router.config.ts`.
@@ -16,12 +18,14 @@ export default {
 ```
 
 **How it works:**
+
 1. Server runs loaders and renders HTML
 2. HTML is sent to browser
 3. Browser hydrates with JavaScript
 4. Subsequent navigations are client-side
 
 **When to use:**
+
 - Dynamic content that changes per request
 - SEO-critical pages
 - Content that depends on user authentication
@@ -40,11 +44,13 @@ export default {
 ```
 
 **How it works:**
+
 1. Server sends minimal HTML shell
 2. Browser loads JavaScript
 3. JavaScript renders the app and fetches data
 
 **When to use:**
+
 - Apps behind authentication (no SEO needed)
 - Dashboards and admin panels
 - When you can't run a Node.js server
@@ -90,22 +96,20 @@ export default {
   ssr: true,
   async prerender() {
     const products = await db.getAllProducts();
-    return [
-      "/",
-      "/about",
-      ...products.map((p) => `/products/${p.id}`),
-    ];
+    return ["/", "/about", ...products.map((p) => `/products/${p.id}`)];
   },
 } satisfies Config;
 ```
 
 **How it works:**
+
 1. At build time, routes are rendered to static HTML
 2. Static HTML files are deployed
 3. Browser hydrates with JavaScript
 4. Subsequent navigations are client-side
 
 **When to use:**
+
 - Marketing pages, blogs, documentation
 - Content that doesn't change per request
 - Maximum performance and CDN caching
@@ -140,11 +144,11 @@ Pre-rendered routes serve static HTML. Other routes are rendered on the server.
 
 The rendering strategy affects which loaders run where:
 
-| Strategy | `loader` | `clientLoader` |
-|----------|----------|----------------|
-| SSR | Server on first load, server on navigation | Browser (optional) |
-| SPA | Never runs | Browser always |
-| Pre-render | Build time | Browser on navigation |
+| Strategy   | `loader`                                   | `clientLoader`        |
+| ---------- | ------------------------------------------ | --------------------- |
+| SSR        | Server on first load, server on navigation | Browser (optional)    |
+| SPA        | Never runs                                 | Browser always        |
+| Pre-render | Build time                                 | Browser on navigation |
 
 ## Configuration Reference
 
@@ -154,15 +158,15 @@ import type { Config } from "@react-router/dev/config";
 export default {
   // Enable/disable server rendering
   ssr: true,
-  
+
   // Pre-render routes at build time
   prerender: true | string[] | (() => Promise<string[]>),
-  
+
   // Base path for the app
   basename: "/app",
-  
+
   // Build directory
   buildDirectory: "build",
-  
+
 } satisfies Config;
 ```

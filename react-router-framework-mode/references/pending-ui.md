@@ -1,3 +1,5 @@
+TODO: needs to be reviewed
+
 # Pending UI and Optimistic Updates
 
 React Router provides hooks to show loading states and optimistic updates during navigation and form submissions.
@@ -54,11 +56,7 @@ import { NavLink } from "react-router";
 function Nav() {
   return (
     <NavLink to="/dashboard">
-      {({ isPending }) => (
-        <span>
-          Dashboard {isPending && <Spinner />}
-        </span>
-      )}
+      {({ isPending }) => <span>Dashboard {isPending && <Spinner />}</span>}
     </NavLink>
   );
 }
@@ -69,7 +67,7 @@ Or use className:
 ```tsx
 <NavLink
   to="/dashboard"
-  className={({ isPending }) => isPending ? "pending" : ""}
+  className={({ isPending }) => (isPending ? "pending" : "")}
 >
   Dashboard
 </NavLink>
@@ -84,10 +82,10 @@ import { useFetcher } from "react-router";
 
 function LikeButton({ postId, liked }) {
   const fetcher = useFetcher();
-  
+
   // Show pending state while submitting
   const isPending = fetcher.state !== "idle";
-  
+
   return (
     <fetcher.Form method="post" action={`/posts/${postId}/like`}>
       <button disabled={isPending}>
@@ -113,18 +111,16 @@ import { useFetcher } from "react-router";
 
 function LikeButton({ postId, initialLiked }) {
   const fetcher = useFetcher();
-  
+
   // Optimistically determine liked state
   const liked = fetcher.formData
     ? fetcher.formData.get("liked") === "true"
     : initialLiked;
-  
+
   return (
     <fetcher.Form method="post" action={`/posts/${postId}/like`}>
       <input type="hidden" name="liked" value={String(!liked)} />
-      <button>
-        {liked ? "❤️" : "🤍"}
-      </button>
+      <button>{liked ? "❤️" : "🤍"}</button>
     </fetcher.Form>
   );
 }
@@ -139,21 +135,19 @@ import { Form, useNavigation } from "react-router";
 
 function NewProjectForm() {
   const navigation = useNavigation();
-  
+
   // Get optimistic value from submission
   const optimisticTitle = navigation.formData?.get("title");
   const isSubmitting = navigation.state === "submitting";
-  
+
   return (
     <Form method="post">
       <input type="text" name="title" />
       <button disabled={isSubmitting}>
         {isSubmitting ? "Creating..." : "Create"}
       </button>
-      
-      {optimisticTitle && (
-        <p>Creating "{optimisticTitle}"...</p>
-      )}
+
+      {optimisticTitle && <p>Creating "{optimisticTitle}"...</p>}
     </Form>
   );
 }
@@ -178,7 +172,7 @@ export default function Page({ loaderData }: Route.ComponentProps) {
   return (
     <div>
       <h1>{loaderData.fastData.title}</h1>
-      
+
       <Suspense fallback={<CommentsSkeleton />}>
         <Await resolve={loaderData.slowData}>
           {(data) => <Comments data={data} />}
@@ -197,7 +191,7 @@ Prevent double submissions:
 function ContactForm() {
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
-  
+
   return (
     <Form method="post">
       <input type="text" name="message" disabled={isSubmitting} />

@@ -1,78 +1,186 @@
 # Route Modules
 
-A route module is a file that defines the behavior for a route. It can export various functions and components.
+Route modules are files referenced in `routes.ts` that define automatic code-splitting, data loading, actions, revalidation, error boundaries, and more.
 
-## Component Export (default)
+## Exports Quick Reference
 
-The default export renders the route's UI:
+| Export             | Purpose                             | Runs On |
+| ------------------ | ----------------------------------- | ------- |
+| `default`          | Route component                     | Client  |
+| `loader`           | Load data before render             | Server  |
+| `clientLoader`     | Load data on client                 | Client  |
+| `action`           | Handle form mutations               | Server  |
+| `clientAction`     | Handle mutations on client          | Client  |
+| `middleware`       | Pre/post request processing         | Server  |
+| `clientMiddleware` | Client navigation processing        | Client  |
+| `ErrorBoundary`    | Render on errors                    | Client  |
+| `HydrateFallback`  | Show during client loader hydration | Client  |
+| `headers`          | Set HTTP response headers           | Server  |
+| `handle`           | Custom route metadata               | Both    |
+| `links`            | Add `<link>` elements               | Both    |
+| `meta`             | Add meta tags                       | Both    |
+| `shouldRevalidate` | Control loader revalidation         | Client  |
+
+---
+
+## Component (`default`)
+
+The default export renders when the route matches:
 
 ```tsx
-export default function MyRoute({ loaderData }: Route.ComponentProps) {
+import type { Route } from "./+types/my-route";
+
+export default function MyRoute({
+  loaderData,
+  actionData,
+  params,
+  matches,
+}: Route.ComponentProps) {
   return <div>{loaderData.message}</div>;
 }
 ```
 
-## loader
+**Props available:**
 
-Provides data to the component on the server:
+- `loaderData` - Data from `loader`
+- `actionData` - Data from `action`
+- `params` - Route parameters
+- `matches` - All matches in current route tree
+
+---
+
+## `loader`
+
+Loads data on the server before render:
 
 ```tsx
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const product = await db.getProduct(params.id);
-  if (!product) {
+  const data = await db.find(params.id);
+  if (!data) {
     throw new Response("Not Found", { status: 404 });
   }
-  return product;
+  return data;
 }
 ```
 
-## clientLoader
+**Args:** `{ params, request, context }`
 
-Runs in the browser. Can work alongside or replace `loader`:
+---
+
+## `clientLoader`
+
+Runs in browser. Can augment or replace server loader:
 
 ```tsx
-export async function clientLoader({ params, serverLoader }: Route.ClientLoaderArgs) {
-  // Option 1: Call server loader and augment
+export async function clientLoader({
+  params,
+  serverLoader,
+}: Route.ClientLoaderArgs) {
   const serverData = await serverLoader();
-  const clientData = await fetchFromClient();
+  const clientData = await getClientData();
   return { ...serverData, ...clientData };
 }
 
-// Force clientLoader to run on initial hydration
-clientLoader.hydrate = true;
+// Run during initial hydration
+clientLoader.hydrate = true as const;
 ```
 
-## action
+**Args:** `{ params, request, serverLoader }`
 
-Handles form submissions and mutations on the server:
+**Use `clientLoader.hydrate = true` when:**
+
+- Client loader should run during initial page load
+- Need to augment server data with client-only data
+
+---
+
+## `action`
+
+Handles form submissions with automatic revalidation:
 
 ```tsx
+import { Form, redirect } from "react-router";
+
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
-  const title = formData.get("title");
-  
-  await db.createProject({ title });
-  return redirect("/projects");
+  await db.create({ title: formData.get("title") });
+  return redirect("/list");
+}
+
+export default function NewItem() {
+  return (
+    <Form method="post">
+      <input name="title" />
+      <button type="submit">Create</button>
+    </Form>
+  );
 }
 ```
 
-## clientAction
+**Args:** `{ params, request, context }`
+
+---
+
+## `clientAction`
 
 Handles mutations in the browser:
 
 ```tsx
-export async function clientAction({ request, serverAction }: Route.ClientActionArgs) {
-  const formData = await request.formData();
-  
-  // Can call serverAction or handle entirely on client
-  const result = await serverAction();
-  return result;
+export async function clientAction({
+  request,
+  serverAction,
+}: Route.ClientActionArgs) {
+  invalidateClientCache();
+  return await serverAction();
 }
 ```
 
-## ErrorBoundary
+**Args:** `{ params, request, serverAction }`
 
-Catches errors from loader, action, or rendering:
+---
+
+## `middleware`
+
+Runs before/after document and data requests on the server:
+
+```tsx
+export const middleware: Route.MiddlewareFunction[] = [
+  async function auth({ request, context }, next) {
+    const session = await getSession(request);
+    if (!session.userId) {
+      throw redirect("/login");
+    }
+    context.set(userContext, await getUser(session.userId));
+    return next();
+  },
+];
+```
+
+**Args:** `{ request, params, context }`, `next`
+
+See [middleware reference](./middleware.md) for details.
+
+---
+
+## `clientMiddleware`
+
+Same as `middleware` but runs in browser. No Response returned:
+
+```tsx
+export const clientMiddleware: Route.ClientMiddlewareFunction[] = [
+  async function timing({ request }, next) {
+    const start = performance.now();
+    await next();
+    console.log(`${request.url} - ${performance.now() - start}ms`);
+  },
+];
+```
+
+---
+
+## `ErrorBoundary`
+
+Renders when loader, action, or component throws:
 
 ```tsx
 import { isRouteErrorResponse, useRouteError } from "react-router";
@@ -83,105 +191,195 @@ export function ErrorBoundary() {
   if (isRouteErrorResponse(error)) {
     return (
       <div>
-        <h1>{error.status} {error.statusText}</h1>
+        <h1>
+          {error.status} {error.statusText}
+        </h1>
         <p>{error.data}</p>
       </div>
     );
   }
 
-  return (
-    <div>
-      <h1>Error</h1>
-      <p>{error instanceof Error ? error.message : "Unknown error"}</p>
-    </div>
-  );
+  if (error instanceof Error) {
+    return (
+      <div>
+        <h1>Error</h1>
+        <p>{error.message}</p>
+      </div>
+    );
+  }
+
+  return <h1>Unknown Error</h1>;
 }
 ```
 
-## HydrateFallback
+---
 
-Shows while `clientLoader.hydrate` is running:
+## `HydrateFallback`
+
+Renders during initial load while `clientLoader.hydrate` runs:
 
 ```tsx
+export async function clientLoader() {
+  return await loadLocalData();
+}
+clientLoader.hydrate = true as const;
+
 export function HydrateFallback() {
   return <div>Loading...</div>;
 }
 ```
 
-## meta
+---
 
-Sets document metadata:
+## `headers`
 
-```tsx
-export function meta({ data }: Route.MetaArgs) {
-  return [
-    { title: data.product.name },
-    { name: "description", content: data.product.description },
-  ];
-}
-```
-
-## links
-
-Adds `<link>` elements to the document head:
-
-```tsx
-export function links() {
-  return [
-    { rel: "stylesheet", href: "/styles/product.css" },
-    { rel: "icon", href: "/favicon.png" },
-  ];
-}
-```
-
-## headers
-
-Sets HTTP headers for the response:
+Sets HTTP response headers:
 
 ```tsx
 export function headers({ loaderHeaders }: Route.HeadersArgs) {
   return {
     "Cache-Control": loaderHeaders.get("Cache-Control") ?? "max-age=3600",
+    "X-Custom-Header": "value",
   };
 }
 ```
 
-## handle
+---
 
-Expose arbitrary data for use with `useMatches`:
+## `meta`
+
+```tsx
+export function meta({ loaderData }: Route.MetaArgs) {
+  return [
+    { title: loaderData.product.name },
+    { name: "description", content: loaderData.product.description },
+  ];
+}
+```
+
+---
+
+## `links`
+
+Adds `<link>` elements to document head:
+
+```tsx
+export function links() {
+  return [
+    { rel: "stylesheet", href: "/styles/page.css" },
+    { rel: "preload", href: "/images/hero.jpg", as: "image" },
+    { rel: "icon", href: "/favicon.png", type: "image/png" },
+  ];
+}
+```
+
+---
+
+## `handle`
+
+Custom data accessible via `useMatches`:
 
 ```tsx
 export const handle = {
-  breadcrumb: "Products",
-  scrollToTop: true,
+  breadcrumb: "Dashboard",
+  permissions: ["admin"],
 };
 ```
 
-Access in parent routes:
+**Usage:**
 
 ```tsx
 import { useMatches } from "react-router";
 
 function Breadcrumbs() {
   const matches = useMatches();
-  const breadcrumbs = matches
-    .filter(m => m.handle?.breadcrumb)
-    .map(m => m.handle.breadcrumb);
-  
-  return <nav>{breadcrumbs.join(" > ")}</nav>;
+  const crumbs = matches
+    .filter((m) => m.handle?.breadcrumb)
+    .map((m) => m.handle.breadcrumb);
+  return <nav>{crumbs.join(" > ")}</nav>;
 }
 ```
 
-## shouldRevalidate
+---
 
-Optimize when loaders rerun:
+## `shouldRevalidate`
+
+Opt out of automatic loader revalidation:
 
 ```tsx
-export function shouldRevalidate({ currentUrl, nextUrl, formAction }) {
-  // Don't revalidate if only the search params changed
+export function shouldRevalidate({
+  currentUrl,
+  nextUrl,
+  formMethod,
+  defaultShouldRevalidate,
+}: Route.ShouldRevalidateFunctionArgs) {
+  // Skip for query-only changes
   if (currentUrl.pathname === nextUrl.pathname) {
     return false;
   }
-  return true;
+  return defaultShouldRevalidate;
 }
 ```
+
+---
+
+## Complete Example
+
+```tsx
+import type { Route } from "./+types/team";
+import {
+  Form,
+  redirect,
+  isRouteErrorResponse,
+  useRouteError,
+} from "react-router";
+
+export const middleware: Route.MiddlewareFunction[] = [
+  async function requireAuth({ context }, next) {
+    if (!context.get(userContext)) throw redirect("/login");
+    return next();
+  },
+];
+
+export async function loader({ params }: Route.LoaderArgs) {
+  const team = await db.teams.find(params.teamId);
+  if (!team) throw new Response("Not Found", { status: 404 });
+  return { team };
+}
+
+export async function action({ request, params }: Route.ActionArgs) {
+  const formData = await request.formData();
+  await db.teams.update(params.teamId, { name: formData.get("name") });
+  return { success: true };
+}
+
+export function headers() {
+  return { "Cache-Control": "private, max-age=60" };
+}
+
+export default function Team({ loaderData, actionData }: Route.ComponentProps) {
+  return (
+    <div>
+      <title>{loaderData.team.name}</title>
+      <h1>{loaderData.team.name}</h1>
+      {actionData?.success && <p>Updated!</p>}
+      <Form method="post">
+        <input name="name" defaultValue={loaderData.team.name} />
+        <button type="submit">Update</button>
+      </Form>
+    </div>
+  );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  if (isRouteErrorResponse(error) && error.status === 404) {
+    return <h1>Team not found</h1>;
+  }
+  return <h1>Something went wrong</h1>;
+}
+```
+
+## See Also
+
+- [Route Module Documentation](https://reactrouter.com/start/framework/route-module)

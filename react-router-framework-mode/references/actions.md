@@ -1,3 +1,5 @@
+TODO: needs to be reviewed
+
 # Actions and Form Handling
 
 Actions handle data mutations (create, update, delete). After an action completes, all loaders on the page automatically revalidate.
@@ -12,9 +14,9 @@ import { redirect, data } from "react-router";
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const title = formData.get("title");
-  
+
   await db.createProject({ title });
-  
+
   return redirect("/projects");
 }
 ```
@@ -24,15 +26,18 @@ export async function action({ request }: Route.ActionArgs) {
 Runs in the browser:
 
 ```tsx
-export async function clientAction({ request, serverAction }: Route.ClientActionArgs) {
+export async function clientAction({
+  request,
+  serverAction,
+}: Route.ClientActionArgs) {
   const formData = await request.formData();
-  
+
   // Can call server action
   const result = await serverAction();
-  
+
   // Or handle entirely on client
   await clientApi.update(formData);
-  
+
   return result;
 }
 ```
@@ -75,15 +80,15 @@ import { useSubmit } from "react-router";
 
 function AutoSave({ data }) {
   const submit = useSubmit();
-  
+
   useEffect(() => {
     const timeout = setTimeout(() => {
       submit(data, { method: "post" });
     }, 1000);
-    
+
     return () => clearTimeout(timeout);
   }, [data, submit]);
-  
+
   return null;
 }
 ```
@@ -98,12 +103,10 @@ import { useFetcher } from "react-router";
 function LikeButton({ postId }) {
   const fetcher = useFetcher();
   const isLiking = fetcher.state === "submitting";
-  
+
   return (
     <fetcher.Form method="post" action={`/posts/${postId}/like`}>
-      <button disabled={isLiking}>
-        {isLiking ? "Liking..." : "Like"}
-      </button>
+      <button disabled={isLiking}>{isLiking ? "Liking..." : "Like"}</button>
     </fetcher.Form>
   );
 }
@@ -126,17 +129,17 @@ import { data } from "react-router";
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const email = formData.get("email");
-  
+
   const errors: Record<string, string> = {};
-  
+
   if (!email?.toString().includes("@")) {
     errors.email = "Invalid email address";
   }
-  
+
   if (Object.keys(errors).length > 0) {
     return data({ errors }, { status: 400 });
   }
-  
+
   await createUser({ email });
   return redirect("/dashboard");
 }
@@ -148,7 +151,7 @@ Access action data with `fetcher.data`:
 function SignupForm() {
   const fetcher = useFetcher();
   const errors = fetcher.data?.errors;
-  
+
   return (
     <fetcher.Form method="post">
       <input type="email" name="email" />
@@ -195,7 +198,7 @@ Use a hidden input or button name to distinguish intents:
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const intent = formData.get("intent");
-  
+
   switch (intent) {
     case "update":
       return updateProject(formData);
@@ -208,7 +211,11 @@ export async function action({ request }: Route.ActionArgs) {
 
 // In component
 <Form method="post">
-  <button name="intent" value="update">Save</button>
-  <button name="intent" value="delete">Delete</button>
-</Form>
+  <button name="intent" value="update">
+    Save
+  </button>
+  <button name="intent" value="delete">
+    Delete
+  </button>
+</Form>;
 ```

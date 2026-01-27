@@ -1,3 +1,5 @@
+TODO: needs to be reviewed
+
 # Data Loading
 
 Data is loaded using `loader` (server) and `clientLoader` (browser) functions.
@@ -26,6 +28,7 @@ export default function Product({ loaderData }: Route.ComponentProps) {
 ## Client Loader
 
 Runs in the browser. Useful for:
+
 - Skipping the server hop (calling APIs directly)
 - Combining server and client data
 - Client-side caching
@@ -47,10 +50,10 @@ export async function loader({ params }: Route.LoaderArgs) {
 export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs) {
   // Get server data
   const serverData = await serverLoader();
-  
+
   // Add client-only data
   const preferences = localStorage.getItem("prefs");
-  
+
   return { ...serverData, preferences: JSON.parse(preferences || "{}") };
 }
 ```
@@ -63,7 +66,7 @@ Force `clientLoader` to run during initial page hydration:
 export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs) {
   const cached = getFromCache();
   if (cached) return cached;
-  
+
   const data = await serverLoader();
   setInCache(data);
   return data;
@@ -85,11 +88,11 @@ Loaders can return plain objects or Response objects:
 ```tsx
 export async function loader({ params }: Route.LoaderArgs) {
   const product = await db.getProduct(params.id);
-  
+
   if (!product) {
     throw new Response("Not Found", { status: 404 });
   }
-  
+
   return product;
 }
 ```
@@ -103,11 +106,11 @@ import { redirect } from "react-router";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const user = await getUser(request);
-  
+
   if (!user) {
     throw redirect("/login");
   }
-  
+
   return user;
 }
 ```
@@ -120,10 +123,10 @@ Access headers, URL, and signal from the request:
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const query = url.searchParams.get("q");
-  
+
   // Use abort signal for cancellation
   const results = await search(query, { signal: request.signal });
-  
+
   return results;
 }
 ```
@@ -151,7 +154,7 @@ export default function Product({ loaderData }: Route.ComponentProps) {
   return (
     <div>
       <h1>{loaderData.product.name}</h1>
-      
+
       <Suspense fallback={<ReviewsSkeleton />}>
         <Await resolve={loaderData.reviews}>
           {(reviews) => <Reviews items={reviews} />}
