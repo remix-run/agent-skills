@@ -1,6 +1,13 @@
+---
+title: Route Modules
+description: All route module exports - loader, action, meta, links, ErrorBoundary, etc.
+tags:
+  [route-module, loader, action, meta, links, ErrorBoundary, headers, handle]
+---
+
 # Route Modules
 
-Route modules are files referenced in `routes.ts` that define automatic code-splitting, data loading, actions, revalidation, error boundaries, and more.
+Route modules are files referenced in `routes.ts` that define automatic code-splitting, data loading, actions, revalidation, error boundaries, and more. For routing configuration, see [routing.md](./routing.md).
 
 ## Exports Quick Reference
 
@@ -256,6 +263,8 @@ export function meta({ loaderData }: Route.MetaArgs) {
   ];
 }
 ```
+
+**Use `loaderData`, not `data`** - the `data` parameter is deprecated.
 
 ---
 

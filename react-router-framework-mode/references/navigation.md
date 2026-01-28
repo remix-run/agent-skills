@@ -1,4 +1,8 @@
-TODO: needs to be reviewed
+---
+title: Navigation
+description: Link, NavLink, useNavigate, redirect, and programmatic navigation
+tags: [navigation, Link, NavLink, useNavigate, redirect, prefetch]
+---
 
 # Navigation
 

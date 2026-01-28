@@ -1,4 +1,8 @@
-TODO: needs to be reviewed
+---
+title: Rendering Strategies
+description: SSR, SPA mode, and pre-rendering configuration
+tags: [ssr, spa, prerender, rendering, react-router.config.ts]
+---
 
 # Rendering Strategies
 

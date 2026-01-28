@@ -1,13 +1,44 @@
+---
+title: Middleware & Context API
+description: Server and client middleware, context API for sharing data
+tags: [middleware, context, authentication, logging, request-processing]
+requires: [react-router@7.9.0+, v8_middleware: true]
+---
+
 # Middleware & Context API
 
-## Requirements
+## ⚠️ Version Requirements - Check First!
 
-- React Router 7.9.0+
-- `v8_middleware` flag enabled in `react-router.config.ts`
+**Before implementing middleware, verify your React Router version:**
 
-If neither of these are met, then this skill is not applicable.
+```bash
+npm list react-router
+```
 
-If enabling the flag, see https://reactrouter.com/how-to/middleware#changes-to-getloadcontextapploadcontext for migration instructions.
+| Feature    | Minimum Version | Config Flag Required  |
+| ---------- | --------------- | --------------------- |
+| Middleware | 7.9.0+          | `v8_middleware: true` |
+
+**If your version is below 7.9.0:**
+
+- Middleware is not available
+- Use loaders/actions for request processing instead
+- Or upgrade: `npm install react-router@latest`
+
+### Enabling Middleware
+
+```ts
+// react-router.config.ts
+import type { Config } from "@react-router/dev/config";
+
+export default {
+  future: {
+    v8_middleware: true, // Required for middleware
+  },
+} satisfies Config;
+```
+
+See https://reactrouter.com/how-to/middleware#changes-to-getloadcontextapploadcontext for migration instructions.
 
 ## Overview
 

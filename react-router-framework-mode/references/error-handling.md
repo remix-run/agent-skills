@@ -1,4 +1,8 @@
-TODO: needs to be reviewed
+---
+title: Error Handling
+description: ErrorBoundary, error responses, isRouteErrorResponse, error reporting
+tags: [errors, ErrorBoundary, useRouteError, isRouteErrorResponse, 404, 500]
+---
 
 # Error Handling
 

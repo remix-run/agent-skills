@@ -1,4 +1,8 @@
-TODO: needs to be reviewed
+---
+title: Data Loading
+description: Server loaders, client loaders, streaming, caching patterns
+tags: [loader, clientLoader, data, streaming, Suspense, defer]
+---
 
 # Data Loading
 

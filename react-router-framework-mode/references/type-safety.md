@@ -1,3 +1,17 @@
+---
+title: Route Module Types
+description: Auto-generated types, typegen setup, typing loaders/actions/fetchers
+tags:
+  [
+    types,
+    typescript,
+    typegen,
+    Route.LoaderArgs,
+    Route.ComponentProps,
+    useFetcher,
+  ]
+---
+
 # Route Module Types
 
 React Router generates route-specific types that provide type inference for URL params, loader data, action data, and more.
@@ -75,6 +89,45 @@ const aboutUrl = href("/:lang?/about", { lang: "en" });
 
 // Use with Link
 <Link to={href("/products/:id", { id: "abc123" })} />;
+```
+
+## Typing useFetcher
+
+When using `useFetcher` to call an action from another route, type it with the action's type:
+
+```tsx
+import { useFetcher } from "react-router";
+
+// Option 1: Import the action type directly
+import type { action } from "./rate";
+
+function RatingForm({ itemId }: { itemId: string }) {
+  const fetcher = useFetcher<typeof action>();
+
+  return (
+    <fetcher.Form method="post" action={`/items/${itemId}/rate`}>
+      <button name="rating" value="5">
+        ⭐⭐⭐⭐⭐
+      </button>
+      {fetcher.data?.success && <span>Saved!</span>}
+    </fetcher.Form>
+  );
+}
+```
+
+```tsx
+// Option 2: Define inline type for simple cases
+type ActionData = { success: boolean; error?: string };
+
+function FavoriteButton({ itemId }: { itemId: string }) {
+  const fetcher = useFetcher<ActionData>();
+
+  return (
+    <fetcher.Form method="post" action={`/favorites/${itemId}`}>
+      <button type="submit">Favorite</button>
+    </fetcher.Form>
+  );
+}
 ```
 
 ## See Also

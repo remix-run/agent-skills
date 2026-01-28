@@ -1,8 +1,25 @@
-TODO: needs to be reviewed
+---
+title: Pending UI and Optimistic Updates
+description: Loading states, optimistic UI, useNavigation, and fetcher states
+tags: [pending-ui, optimistic-ui, loading, useNavigation, useFetcher, spinner]
+---
 
 # Pending UI and Optimistic Updates
 
-React Router provides hooks to show loading states and optimistic updates during navigation and form submissions.
+**Key principle:** Show expected results immediately using `fetcher.formData`, then let React Router sync with the server.
+
+## Quick Reference
+
+| Pattern                  | Hook                      | Use Case                   |
+| ------------------------ | ------------------------- | -------------------------- |
+| Optimistic mutations     | `useFetcher` + `formData` | Likes, ratings, toggles    |
+| Global loading indicator | `useNavigation`           | Page-level spinner         |
+| Link pending state       | `NavLink`                 | Nav item loading indicator |
+| Deferred data            | `Await` + `Suspense`      | Stream slow data           |
+
+For mutation patterns (when to use Form vs useFetcher), see [actions.md](./actions.md#choosing-the-right-pattern).
+
+---
 
 ## useNavigation
 
@@ -102,9 +119,9 @@ function LikeButton({ postId, liked }) {
 - `fetcher.data` - Data returned from the action/loader
 - `fetcher.formData` - Form data being submitted
 
-## Optimistic UI
+## Optimistic UI with useFetcher (Recommended Pattern)
 
-Show the expected result before the server responds:
+**This is the standard pattern for mutations.** Show the expected result immediately using `fetcher.formData`:
 
 ```tsx
 import { useFetcher } from "react-router";
@@ -112,7 +129,7 @@ import { useFetcher } from "react-router";
 function LikeButton({ postId, initialLiked }) {
   const fetcher = useFetcher();
 
-  // Optimistically determine liked state
+  // Optimistic: check pending form data first, fallback to server state
   const liked = fetcher.formData
     ? fetcher.formData.get("liked") === "true"
     : initialLiked;
@@ -125,6 +142,42 @@ function LikeButton({ postId, initialLiked }) {
   );
 }
 ```
+
+### Complete Optimistic UI Example
+
+```tsx
+import { useFetcher } from "react-router";
+
+function RatingStars({ itemId, currentRating }) {
+  const fetcher = useFetcher();
+
+  // 1. Check if we're submitting - use the pending value
+  // 2. Otherwise use the server value
+  const displayRating = fetcher.formData
+    ? Number(fetcher.formData.get("rating"))
+    : currentRating;
+
+  const isSubmitting = fetcher.state !== "idle";
+
+  return (
+    <fetcher.Form method="post" action={`/items/${itemId}/rate`}>
+      <div className={isSubmitting ? "opacity-50" : ""}>
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button key={star} type="submit" name="rating" value={star}>
+            {star <= displayRating ? "★" : "☆"}
+          </button>
+        ))}
+      </div>
+    </fetcher.Form>
+  );
+}
+```
+
+### Why fetcher.formData?
+
+- **Instant feedback** - UI updates immediately on click
+- **No loading spinners needed** - the optimistic state IS the loading state
+- **Automatic rollback** - if the action fails, loaders revalidate and reset to server state
 
 ## Optimistic UI with useNavigation
 
@@ -217,3 +270,10 @@ Use CSS for simple loading indicators:
 ```tsx
 <body className={isNavigating ? "loading" : ""}>
 ```
+
+---
+
+## See Also
+
+- [actions.md](./actions.md) - Form handling and useFetcher patterns
+- [special-files.md](./special-files.md#customizing-roottsx-complete-example) - Global loading indicators in root.tsx

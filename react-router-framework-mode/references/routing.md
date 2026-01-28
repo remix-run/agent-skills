@@ -1,4 +1,12 @@
+---
+title: Routing
+description: Route configuration, nested routes, layouts, dynamic segments
+tags: [routing, routes.ts, nested-routes, layout, dynamic-segments, params]
+---
+
 # Routing
+
+For file conventions (`root.tsx`, `routes.ts`, etc.), see [special-files.md](./special-files.md).
 
 If using `@react-router/fs-routes` see https://reactrouter.com/how-to/file-route-conventions
 
@@ -98,9 +106,13 @@ export default function Dashboard() {
 
 ## Root Route
 
-Every route in `routes.ts` is nested inside `app/root.tsx`.
+**Every route in `routes.ts` is nested inside `app/root.tsx`.** Put global navigation, footer, providers, and fonts there.
 
-## Layout Routes
+See [special-files.md](./special-files.md#roottsx-required) for `root.tsx` customization patterns.
+
+## Layout Routes (Use Them!)
+
+**Prefer nested routes over flat structures.** Layouts reduce code duplication and enable shared UI.
 
 Create nesting without adding URL segments:
 
@@ -114,6 +126,26 @@ export default [
 ```
 
 Both routes render into `marketing/layout.tsx`'s `<Outlet />`.
+
+### Anti-Pattern: Flat Routes
+
+```ts
+// ❌ DON'T: Flat structure with no shared layouts
+export default [
+  route("dashboard", "./dashboard.tsx"),
+  route("dashboard/settings", "./dashboard-settings.tsx"),
+  route("dashboard/profile", "./dashboard-profile.tsx"),
+] satisfies RouteConfig;
+
+// ✅ DO: Use nested routes with shared layout
+export default [
+  route("dashboard", "./dashboard/layout.tsx", [
+    index("./dashboard/index.tsx"),
+    route("settings", "./dashboard/settings.tsx"),
+    route("profile", "./dashboard/profile.tsx"),
+  ]),
+] satisfies RouteConfig;
+```
 
 ## Index Routes
 

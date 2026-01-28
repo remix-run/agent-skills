@@ -21,147 +21,96 @@ Framework mode is React Router's full-stack development experience with file-bas
 
 Load the relevant reference for detailed guidance on the specific API/concept:
 
-| Reference                            | Use When                                                        |
-| ------------------------------------ | --------------------------------------------------------------- |
-| `references/routing.md`              | Configuring routes, nested routes, dynamic segments             |
-| `references/route-modules.md`        | Understanding all route module exports                          |
-| `references/data-loading.md`         | Loading data with loaders, streaming, caching                   |
-| `references/actions.md`              | Handling forms, mutations, validation                           |
-| `references/navigation.md`           | Links, programmatic navigation, redirects                       |
-| `references/pending-ui.md`           | Loading states, optimistic UI                                   |
-| `references/error-handling.md`       | Error boundaries, error reporting                               |
-| `references/rendering-strategies.md` | SSR vs SPA vs pre-rendering configuration                       |
-| `references/middleware.md`           | Adding middleware to routes or using React Router's context API |
-| `references/type-safety.md`          | Auto-generated route types, type imports, type safety           |
+| Reference                            | Use When                                              |
+| ------------------------------------ | ----------------------------------------------------- |
+| `references/routing.md`              | Configuring routes, nested routes, dynamic segments   |
+| `references/route-modules.md`        | Understanding all route module exports                |
+| `references/special-files.md`        | Customizing root.tsx, adding global nav/footer, fonts |
+| `references/data-loading.md`         | Loading data with loaders, streaming, caching         |
+| `references/actions.md`              | Handling forms, mutations, validation                 |
+| `references/navigation.md`           | Links, programmatic navigation, redirects             |
+| `references/pending-ui.md`           | Loading states, optimistic UI                         |
+| `references/error-handling.md`       | Error boundaries, error reporting                     |
+| `references/rendering-strategies.md` | SSR vs SPA vs pre-rendering configuration             |
+| `references/middleware.md`           | Adding middleware (requires v7.9.0+)                  |
+| `references/type-safety.md`          | Auto-generated route types, type imports, type safety |
 
-TODO: potential other references to consider:
+## Version Compatibility
 
-- `references/special-files.md`
-- `references/middleware.md`
-- `references/revalidation.md`
+Some features require specific React Router versions. **Always verify before implementing:**
 
-## Quick Reference
-
-### Project Structure
-
-TODO: reference special files. Not sure if this is needed/should be at the top level.
-
-```
-my-app/
-├── app/
-│   ├── root.tsx          # Root layout
-│   ├── routes.ts         # Route configuration
-│   └── routes/           # Route modules
-├── react-router.config.ts
-└── vite.config.ts
+```bash
+npm list react-router
 ```
 
-### Configuring Routes
+| Feature                 | Minimum Version | Notes                         |
+| ----------------------- | --------------- | ----------------------------- |
+| Middleware              | 7.9.0+          | Requires `v8_middleware` flag |
+| Core framework features | 7.0.0+          | loaders, actions, Form, etc.  |
 
-Load the `references/routing.md` reference for detailed guidance on configuring routes.
+## Critical Patterns
 
-Here is a robust sample route config:
+These are the most important patterns to follow. Load the relevant reference for full details.
 
-```ts filename="app/routes.ts"
-import {
-  type RouteConfig,
-  route,
-  index,
-  layout,
-  prefix,
-} from "@react-router/dev/routes";
+### Forms & Mutations
 
-export default [
-  index("./home.tsx"),
-  route("about", "./about.tsx"),
+**Search forms** - use `<Form method="get">`, NOT `onSubmit` with `setSearchParams`:
 
-  layout("./auth/layout.tsx", [
-    route("login", "./auth/login.tsx"),
-    route("register", "./auth/register.tsx"),
-  ]),
+```tsx
+// ✅ Correct
+<Form method="get">
+  <input name="q" />
+</Form>
 
-  ...prefix("concerts", [
-    index("./concerts/home.tsx"),
-    route(":city", "./concerts/city.tsx"),
-    route("trending", "./concerts/trending.tsx"),
-  ]),
-] satisfies RouteConfig;
+// ❌ Wrong - don't manually handle search params
+<form onSubmit={(e) => { e.preventDefault(); setSearchParams(...) }}>
 ```
 
-If using `@react-router/fs-routes` see https://reactrouter.com/how-to/file-route-conventions
+**Inline mutations** - use `useFetcher`, NOT `<Form>` (which causes page navigation):
+
+```tsx
+const fetcher = useFetcher();
+const optimistic = fetcher.formData?.get("favorite") === "true" ?? isFavorite;
+
+<fetcher.Form method="post" action={`/favorites/${id}`}>
+  <button>{optimistic ? "★" : "☆"}</button>
+</fetcher.Form>;
+```
+
+See `references/actions.md` for complete patterns.
+
+### Layouts
+
+**Global UI belongs in `root.tsx`** - don't create separate layout files for nav/footer:
+
+```tsx
+// app/root.tsx - add navigation, footer, providers here
+export default function App() {
+  return (
+    <div>
+      <nav>...</nav>
+      <Outlet />
+      <footer>...</footer>
+    </div>
+  );
+}
+```
+
+**Use nested routes** for section-specific layouts. See `references/routing.md`.
 
 ### Route Module Exports
 
-Load the `references/route-modules.md` reference for detailed guidance on each export.
-
-| Export             | Purpose                             | Runs On |
-| ------------------ | ----------------------------------- | ------- |
-| `default`          | Route component                     | Client  |
-| `loader`           | Load data before render             | Server  |
-| `clientLoader`     | Load data on client                 | Client  |
-| `action`           | Handle form mutations               | Server  |
-| `clientAction`     | Handle mutations on client          | Client  |
-| `middleware`       | Pre/post request processing         | Server  |
-| `clientMiddleware` | Client navigation processing        | Client  |
-| `ErrorBoundary`    | Render on errors                    | Client  |
-| `HydrateFallback`  | Show during client loader hydration | Client  |
-| `headers`          | Set HTTP response headers           | Server  |
-| `handle`           | Custom route metadata               | Both    |
-| `links`            | Add `<link>` elements               | Both    |
-| `meta`             | Add meta tags                       | Both    |
-| `shouldRevalidate` | Control loader revalidation         | Client  |
-
-### Common Patterns
-
-TODO: will need to update this section to include a good summary of all the info. This might be a little too simplistic and not really helpful.
-
-**Data loading:**
+**`meta` uses `loaderData`**, not deprecated `data`:
 
 ```tsx
-export async function loader({ params }: Route.LoaderArgs) {
-  return db.getProduct(params.id);
-}
+// ✅ Correct
+export function meta({ loaderData }: Route.MetaArgs) { ... }
 
-export default function Product({ loaderData }: Route.ComponentProps) {
-  return <h1>{loaderData.name}</h1>;
-}
+// ❌ Wrong - `data` is deprecated
+export function meta({ data }: Route.MetaArgs) { ... }
 ```
 
-**Form submission:**
-
-```tsx
-import { Form, redirect } from "react-router";
-
-export async function action({ request }: Route.ActionArgs) {
-  const formData = await request.formData();
-  await db.create({ title: formData.get("title") });
-  return redirect("/items");
-}
-
-export default function New() {
-  return (
-    <Form method="post">
-      <input name="title" />
-      <button type="submit">Create</button>
-    </Form>
-  );
-}
-```
-
-**Fetcher for non-navigating mutations:**
-
-```tsx
-import { useFetcher } from "react-router";
-
-function LikeButton({ id }) {
-  const fetcher = useFetcher();
-  return (
-    <fetcher.Form method="post" action={`/like/${id}`}>
-      <button>{fetcher.state === "idle" ? "Like" : "..."}</button>
-    </fetcher.Form>
-  );
-}
-```
+See `references/route-modules.md` for all exports.
 
 ## Further Documentation
 

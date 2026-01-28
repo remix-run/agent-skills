@@ -1,8 +1,117 @@
-TODO: needs to be reviewed
+---
+title: Actions and Form Handling
+description: Form submission patterns, useFetcher, mutations, and validation
+tags: [forms, mutations, useFetcher, Form, action, validation, optimistic-ui]
+---
 
 # Actions and Form Handling
 
 Actions handle data mutations (create, update, delete). After an action completes, all loaders on the page automatically revalidate.
+
+## Choosing the Right Pattern
+
+| Use Case                     | Pattern                | Why                                |
+| ---------------------------- | ---------------------- | ---------------------------------- |
+| Search/filter forms          | `<Form method="get">`  | Auto-updates URL search params     |
+| Mutations that navigate      | `<Form method="post">` | Creates, then redirects            |
+| Mutations without navigation | `useFetcher`           | Ratings, likes, inline edits       |
+| Multiple mutations on page   | `useFetcher`           | Each fetcher has independent state |
+
+**Default to `useFetcher` for mutations** - it provides smoother UX with optimistic updates and no page reload.
+
+## Anti-Patterns to Avoid
+
+```tsx
+// ❌ DON'T: Manual form handling for search
+function SearchForm() {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    setSearchParams({ q: formData.get("q") as string });
+  }
+
+  return (
+    <form onSubmit={onSubmit}>
+      <input name="q" />
+      <button type="submit">Search</button>
+    </form>
+  );
+}
+
+// ✅ DO: Use Form with method="get" - handles search params automatically
+function SearchForm() {
+  return (
+    <Form method="get">
+      <input name="q" />
+      <button type="submit">Search</button>
+    </Form>
+  );
+}
+```
+
+```tsx
+// ❌ DON'T: Use Form for inline mutations (causes full navigation)
+function RatingButton({ itemId }) {
+  return (
+    <Form method="post" action={`/items/${itemId}/rate`}>
+      <button>Rate</button>
+    </Form>
+  );
+}
+
+// ✅ DO: Use useFetcher for inline mutations (no navigation, smoother UX)
+function RatingButton({ itemId, currentRating }) {
+  const fetcher = useFetcher();
+
+  // Optimistic UI - show expected state immediately
+  const optimisticRating = fetcher.formData
+    ? Number(fetcher.formData.get("rating"))
+    : currentRating;
+
+  return (
+    <fetcher.Form method="post" action={`/items/${itemId}/rate`}>
+      <input type="hidden" name="rating" value={optimisticRating + 1} />
+      <button>⭐ {optimisticRating}</button>
+    </fetcher.Form>
+  );
+}
+```
+
+---
+
+## Search Forms with GET
+
+`<Form method="get">` automatically serializes inputs to URL search params:
+
+```tsx
+import { Form, useSearchParams } from "react-router";
+
+export default function SearchPage() {
+  const [searchParams] = useSearchParams();
+  const query = searchParams.get("q") ?? "";
+
+  return (
+    <div>
+      <Form method="get">
+        <input type="text" name="q" defaultValue={query} />
+        <button type="submit">Search</button>
+      </Form>
+      {/* Results render here */}
+    </div>
+  );
+}
+
+// Loader receives search params via request.url
+export async function loader({ request }: Route.LoaderArgs) {
+  const url = new URL(request.url);
+  const query = url.searchParams.get("q") ?? "";
+  return { results: await search(query) };
+}
+```
+
+---
 
 ## Server Action
 
@@ -42,9 +151,11 @@ export async function clientAction({
 }
 ```
 
+---
+
 ## Form Component
 
-The `<Form>` component submits to actions:
+The `<Form>` component submits to actions and handles navigation:
 
 ```tsx
 import { Form } from "react-router";
@@ -93,9 +204,11 @@ function AutoSave({ data }) {
 }
 ```
 
-## useFetcher
+## useFetcher (Preferred for Mutations)
 
-For mutations that don't navigate:
+**Use `useFetcher` as the default for mutations** - it provides independent state, no page navigation, and enables optimistic UI.
+
+### Basic Usage
 
 ```tsx
 import { useFetcher } from "react-router";
@@ -112,10 +225,39 @@ function LikeButton({ postId }) {
 }
 ```
 
+### Optimistic UI Pattern (Recommended)
+
+Use `fetcher.formData` to show expected results immediately. See [pending-ui.md](./pending-ui.md#optimistic-ui-with-usefetcher-recommended-pattern) for complete patterns.
+
+Quick example:
+
+```tsx
+function FavoriteButton({ itemId, isFavorite }) {
+  const fetcher = useFetcher();
+
+  // Optimistic: use pending form data, fallback to server state
+  const optimistic = fetcher.formData
+    ? fetcher.formData.get("favorite") === "true"
+    : isFavorite;
+
+  return (
+    <fetcher.Form method="post" action={`/items/${itemId}/favorite`}>
+      <input type="hidden" name="favorite" value={String(!optimistic)} />
+      <button>{optimistic ? "★" : "☆"}</button>
+    </fetcher.Form>
+  );
+}
+```
+
+### Typing useFetcher
+
+See [type-safety.md](./type-safety.md#typing-usefetcher) for typing patterns.
+
 ### Fetcher Properties
 
 - `fetcher.state` - `"idle"`, `"submitting"`, or `"loading"`
 - `fetcher.data` - Data returned from the action
+- `fetcher.formData` - FormData being submitted (use for optimistic UI)
 - `fetcher.Form` - Form component scoped to this fetcher
 - `fetcher.submit()` - Submit programmatically
 
@@ -219,3 +361,11 @@ export async function action({ request }: Route.ActionArgs) {
   </button>
 </Form>;
 ```
+
+---
+
+## See Also
+
+- [pending-ui.md](./pending-ui.md) - Optimistic UI and loading states
+- [type-safety.md](./type-safety.md) - Typing useFetcher and actions
+- [route-modules.md](./route-modules.md) - All route module exports
