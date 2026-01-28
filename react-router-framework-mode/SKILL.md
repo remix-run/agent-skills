@@ -16,6 +16,7 @@ Framework mode is React Router's full-stack development experience with file-bas
 - Navigating with `<Link>`, `<NavLink>`, `<Form>`, `redirect`, and `useNavigate`
 - Implementing pending/loading UI states
 - Configuring SSR, SPA mode, or pre-rendering (`react-router.config.ts`)
+- Implementing authentication
 
 ## References
 
@@ -33,6 +34,7 @@ Load the relevant reference for detailed guidance on the specific API/concept:
 | `references/error-handling.md`       | Error boundaries, error reporting                     |
 | `references/rendering-strategies.md` | SSR vs SPA vs pre-rendering configuration             |
 | `references/middleware.md`           | Adding middleware (requires v7.9.0+)                  |
+| `references/sessions.md`             | Cookie sessions, authentication, protected routes     |
 | `references/type-safety.md`          | Auto-generated route types, type imports, type safety |
 
 ## Version Compatibility
