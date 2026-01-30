@@ -161,7 +161,7 @@ function RatingStars({ itemId, currentRating }) {
 
   return (
     <fetcher.Form method="post" action={`/items/${itemId}/rate`}>
-      <div className={isSubmitting ? "opacity-50" : ""}>
+      <div style={{ opacity: isSubmitting ? 0.5 : 1 }}>
         {[1, 2, 3, 4, 5].map((star) => (
           <button key={star} type="submit" name="rating" value={star}>
             {star <= displayRating ? "★" : "☆"}
