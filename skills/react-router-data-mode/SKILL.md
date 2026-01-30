@@ -21,14 +21,15 @@ Data mode uses `createBrowserRouter` and `RouterProvider` to enable data loading
 
 Load the relevant reference for detailed guidance on the specific API/concept:
 
-| Reference                  | Use When                                        |
-| -------------------------- | ----------------------------------------------- |
-| `references/routing.md`    | Configuring routes, nested routes, layout       |
-| `references/route-object.md` | Understanding route object properties         |
-| `references/data-loading.md` | Loading data with loaders                     |
-| `references/actions.md`    | Handling forms, mutations, validation           |
-| `references/navigation.md` | Links, programmatic navigation, redirects       |
-| `references/pending-ui.md` | Loading states, optimistic UI                   |
+| Reference                    | Use When                                  |
+| ---------------------------- | ----------------------------------------- |
+| `references/routing.md`      | Configuring routes, nested routes, layout |
+| `references/route-object.md` | Understanding route object properties     |
+| `references/data-loading.md` | Loading data with loaders                 |
+| `references/actions.md`      | Handling forms, mutations, validation     |
+| `references/navigation.md`   | Links, programmatic navigation, redirects |
+| `references/pending-ui.md`   | Loading states, optimistic UI             |
+| `references/ssr.md`          | Server-side rendering with data mode      |
 
 ## Critical Patterns
 
