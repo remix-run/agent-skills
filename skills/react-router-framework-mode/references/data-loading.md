@@ -1,7 +1,7 @@
 ---
 title: Data Loading
 description: Server loaders, client loaders, streaming, caching patterns
-tags: [loader, clientLoader, data, streaming, Suspense, defer]
+tags: [loader, clientLoader, data, streaming, Suspense]
 ---
 
 # Data Loading
@@ -87,7 +87,7 @@ export function HydrateFallback() {
 
 ## Returning Responses
 
-Loaders can return plain objects or Response objects:
+Loaders can return plain objects or `Response` objects:
 
 ```tsx
 export async function loader({ params }: Route.LoaderArgs) {
@@ -98,6 +98,27 @@ export async function loader({ params }: Route.LoaderArgs) {
   }
 
   return product;
+}
+```
+
+### Adding Status or Headers with `data()`
+
+Use `data()` to return plain data with custom status/headers without creating a full `Response`:
+
+```tsx
+import { data } from "react-router";
+
+export async function loader({ params }: Route.LoaderArgs) {
+  const product = await db.getProduct(params.id);
+
+  if (!product) {
+    throw new Response("Not Found", { status: 404 });
+  }
+
+  return data(product, {
+    status: 200,
+    headers: { "Cache-Control": "public, max-age=60" },
+  });
 }
 ```
 
@@ -139,12 +160,12 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 React Router loads data for all matched routes in parallel. Parent and child loaders run simultaneously, not sequentially.
 
-## Streaming with defer (Advanced)
+## Streaming with Promises (Advanced)
 
-Stream slow data while rendering fast data immediately:
+React Router v7 no longer uses `defer`. Instead, return promises directly from your loader and use `Await` to stream the slow parts while rendering the fast parts immediately:
 
 ```tsx
-import { defer, Await } from "react-router";
+import { Await } from "react-router";
 import { Suspense } from "react";
 
 export async function loader({ params }: Route.LoaderArgs) {
