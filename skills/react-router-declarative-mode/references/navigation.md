@@ -28,11 +28,11 @@ function Nav() {
 
 ### Link Props
 
-| Prop      | Purpose                                    | Example                              |
-| --------- | ------------------------------------------ | ------------------------------------ |
-| `to`      | Destination path (string or object)        | `to="/dashboard"`                    |
-| `replace` | Replace current history entry              | `replace`                            |
-| `state`   | Pass state to the destination              | `state={{ from: "home" }}`           |
+| Prop      | Purpose                             | Example                    |
+| --------- | ----------------------------------- | -------------------------- |
+| `to`      | Destination path (string or object) | `to="/dashboard"`          |
+| `replace` | Replace current history entry       | `replace`                  |
+| `state`   | Pass state to the destination       | `state={{ from: "home" }}` |
 
 ```tsx
 <Link to="/dashboard" replace state={{ from: "home" }}>
@@ -50,33 +50,45 @@ import { NavLink } from "react-router";
 function Nav() {
   return (
     <nav>
-      <NavLink
-        to="/"
-        end
-        className={({ isActive }) => (isActive ? "active" : "")}
-      >
+      <NavLink to="/" end>
         Home
       </NavLink>
-
-      <NavLink
-        to="/products"
-        className={({ isActive }) => (isActive ? "active" : "")}
-      >
-        Products
-      </NavLink>
+      <NavLink to="/products">Products</NavLink>
     </nav>
   );
 }
 ```
 
+### Automatic Active Class
+
+NavLink automatically adds an `.active` class when active, so you can style it with CSS:
+
+```css
+a.active {
+  color: blue;
+  font-weight: bold;
+}
+```
+
+For custom class names, use the `className` function:
+
+```tsx
+<NavLink
+  to="/products"
+  className={({ isActive }) => (isActive ? "nav-active" : "nav-link")}
+>
+  Products
+</NavLink>
+```
+
 ### NavLink Props
 
-| Prop        | Purpose                                  | Example                                     |
-| ----------- | ---------------------------------------- | ------------------------------------------- |
-| `end`       | Only match exact path (not prefixes)     | `<NavLink to="/" end>`                      |
-| `className` | String or function with `{ isActive }`   | `className={({ isActive }) => ...}`         |
-| `style`     | Object or function with `{ isActive }`   | `style={({ isActive }) => ...}`             |
-| `children`  | Can be a function with `{ isActive }`    | `{({ isActive }) => <span>...</span>}`      |
+| Prop        | Purpose                                | Example                                |
+| ----------- | -------------------------------------- | -------------------------------------- |
+| `end`       | Only match exact path (not prefixes)   | `<NavLink to="/" end>`                 |
+| `className` | String or function with `{ isActive }` | `className={({ isActive }) => ...}`    |
+| `style`     | Object or function with `{ isActive }` | `style={({ isActive }) => ...}`        |
+| `children`  | Can be a function with `{ isActive }`  | `{({ isActive }) => <span>...</span>}` |
 
 ### Styling Active Links
 
@@ -128,22 +140,35 @@ Without `end`, NavLink matches if the current URL starts with the `to` path:
 
 ## useNavigate Hook
 
-Programmatic navigation for event handlers and effects:
+Programmatic navigation for situations where the user is _not_ directly clicking a link:
 
 ```tsx
 import { useNavigate } from "react-router";
 
-function LoginButton() {
+function LoginForm() {
   const navigate = useNavigate();
 
-  async function handleLogin() {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
     await login();
     navigate("/dashboard");
   }
 
-  return <button onClick={handleLogin}>Login</button>;
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* form fields */}
+      <button type="submit">Login</button>
+    </form>
+  );
 }
 ```
+
+> **Important**: Prefer `Link` or `NavLink` for user-initiated navigation. They provide better UX including keyboard events, accessibility, right-click menus, and "open in new tab". Reserve `useNavigate` for:
+>
+> - After form submissions complete
+> - Logging out after inactivity
+> - Redirects based on data/conditions
+> - Timed UIs (quizzes, etc.)
 
 ### Navigate Options
 
@@ -162,16 +187,16 @@ navigate("/checkout", { state: { cartId: "abc" } });
 // Go back/forward in history
 navigate(-1); // Go back one page
 navigate(-2); // Go back two pages
-navigate(1);  // Go forward one page
+navigate(1); // Go forward one page
 ```
 
 ### When to Use Each Approach
 
-| Approach      | Use Case                                        |
-| ------------- | ----------------------------------------------- |
-| `<Link>`      | Standard navigation, SEO-friendly links         |
-| `<NavLink>`   | Navigation menus with active state styling      |
-| `useNavigate` | After async operations, in event handlers       |
+| Approach      | Use Case                                   |
+| ------------- | ------------------------------------------ |
+| `<Link>`      | Standard navigation, SEO-friendly links    |
+| `<NavLink>`   | Navigation menus with active state styling |
+| `useNavigate` | After async operations, in event handlers  |
 
 ## Relative Navigation
 
@@ -204,7 +229,7 @@ Pass data to the destination without putting it in the URL:
 // Sending state
 <Link to="/checkout" state={{ cartId: "abc123", from: "/cart" }}>
   Checkout
-</Link>
+</Link>;
 
 // Or with useNavigate
 navigate("/checkout", { state: { cartId: "abc123" } });
@@ -225,12 +250,12 @@ Reading state at the destination - see [url-values.md](./url-values.md#uselocati
 ```tsx
 // ❌ DON'T: Use window.location for navigation
 function handleClick() {
-  window.location.href = "/dashboard";  // full page reload
+  window.location.href = "/dashboard"; // full page reload
 }
 
 // ✅ DO: Use useNavigate for programmatic navigation
 function handleClick() {
-  navigate("/dashboard");  // client-side navigation
+  navigate("/dashboard"); // client-side navigation
 }
 ```
 

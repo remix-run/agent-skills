@@ -110,10 +110,15 @@ function SearchForm() {
 
   function handleSearch(e: React.ChangeEvent<HTMLInputElement>) {
     const value = e.target.value;
+    const isFirstSearch = !searchParams.has("q");
+
     if (value) {
-      setSearchParams({ q: value });
+      setSearchParams(
+        { q: value },
+        { replace: !isFirstSearch }, // Replace while typing, push on first search
+      );
     } else {
-      setSearchParams({});
+      setSearchParams({}, { replace: true });
     }
   }
 
@@ -128,32 +133,124 @@ function SearchForm() {
 }
 ```
 
-### Preserving Other Params
+> **Tip**: Use `replace: true` for incremental updates like type-ahead search. This prevents the back button from cycling through every keystroke.
+
+### Navigation Options
+
+`setSearchParams` accepts navigation options as a second argument:
 
 ```tsx
-function Pagination() {
+function Filters() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const page = parseInt(searchParams.get("page") || "1", 10);
 
-  function goToPage(newPage: number) {
+  function applyFilter(category: string) {
+    setSearchParams(
+      { category },
+      {
+        replace: true, // Don't add to history (back button skips)
+        preventScrollReset: true, // Keep scroll position
+      },
+    );
+  }
+
+  return (
+    <button onClick={() => applyFilter("electronics")}>Electronics</button>
+  );
+}
+```
+
+| Option               | Purpose                                       |
+| -------------------- | --------------------------------------------- |
+| `replace`            | Replace history entry instead of pushing      |
+| `preventScrollReset` | Keep current scroll position after navigation |
+| `state`              | Pass state to the new location                |
+
+### Preserving Other Params
+
+When updating search params programmatically, preserve existing params:
+
+```tsx
+function SortDropdown() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sort = searchParams.get("sort") || "name";
+
+  function handleSortChange(newSort: string) {
     // ❌ DON'T: Overwrite all params
-    setSearchParams({ page: String(newPage) });
+    setSearchParams({ sort: newSort });
 
-    // ✅ DO: Preserve existing params
+    // ✅ DO: Preserve existing params (like page, filters)
     setSearchParams((prev) => {
-      prev.set("page", String(newPage));
+      prev.set("sort", String(newSort));
       return prev;
     });
   }
 
   return (
-    <div>
-      <button onClick={() => goToPage(page - 1)}>Previous</button>
-      <span>Page {page}</span>
-      <button onClick={() => goToPage(page + 1)}>Next</button>
-    </div>
+    <select value={sort} onChange={(e) => handleSortChange(e.target.value)}>
+      <option value="name">Name</option>
+      <option value="date">Date</option>
+    </select>
   );
 }
+```
+
+> **Note**: For pagination and other navigation controls, prefer the [Link-based approach](#link-based-pagination-preferred) below for better accessibility.
+
+### Link-based Pagination (Preferred)
+
+For pagination and similar controls, prefer `<Link>` over buttons with `setSearchParams`:
+
+```tsx
+import { Link, useSearchParams } from "react-router";
+
+function Pagination({
+  currentPage,
+  totalPages,
+}: {
+  currentPage: number;
+  totalPages: number;
+}) {
+  const [searchParams] = useSearchParams();
+
+  // Build URL that preserves existing search params
+  function getPageUrl(page: number): string {
+    const params = new URLSearchParams(searchParams);
+    params.set("page", String(page));
+    return `?${params.toString()}`;
+  }
+
+  return (
+    <nav aria-label="Pagination">
+      {currentPage > 1 && (
+        <Link to={getPageUrl(currentPage - 1)}>Previous</Link>
+      )}
+      <span>
+        Page {currentPage} of {totalPages}
+      </span>
+      {currentPage < totalPages && (
+        <Link to={getPageUrl(currentPage + 1)}>Next</Link>
+      )}
+    </nav>
+  );
+}
+```
+
+Why prefer Links over buttons:
+
+- **Accessibility**: Real anchor elements work with screen readers and keyboard navigation
+- **Right-click**: Users can open in new tab or copy link
+- **Middle-click**: Opens in new tab automatically
+- **Browser features**: Back/forward, bookmarking work naturally
+- **SEO**: Search engines can discover paginated content
+
+```tsx
+// ❌ DON'T: Use buttons for navigation that changes URL
+<button onClick={() => setSearchParams({ page: "2" })}>
+  Page 2
+</button>
+
+// ✅ DO: Use Links for URL-changing navigation
+<Link to="?page=2">Page 2</Link>
 ```
 
 ### Multiple Values

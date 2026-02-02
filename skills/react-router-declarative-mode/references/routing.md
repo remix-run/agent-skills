@@ -1,7 +1,17 @@
 ---
 title: Routing
 description: JSX-based route configuration with Routes and Route components
-tags: [routing, Routes, Route, nested-routes, layout, dynamic-segments, params, Outlet]
+tags:
+  [
+    routing,
+    Routes,
+    Route,
+    nested-routes,
+    layout,
+    dynamic-segments,
+    params,
+    Outlet,
+  ]
 ---
 
 # Routing
@@ -28,12 +38,12 @@ function App() {
 
 ## Route Component Props
 
-| Prop      | Purpose                              | Example                           |
-| --------- | ------------------------------------ | --------------------------------- |
-| `path`    | URL pattern to match                 | `path="users/:id"`                |
-| `element` | Component to render                  | `element={<User />}`              |
-| `index`   | Default child route (no path)        | `<Route index element={...} />`   |
-| `children`| Nested routes                        | `<Route path="dashboard">...</Route>` |
+| Prop       | Purpose                       | Example                               |
+| ---------- | ----------------------------- | ------------------------------------- |
+| `path`     | URL pattern to match          | `path="users/:id"`                    |
+| `element`  | Component to render           | `element={<User />}`                  |
+| `index`    | Default child route (no path) | `<Route index element={...} />`       |
+| `children` | Nested routes                 | `<Route path="dashboard">...</Route>` |
 
 ## Nested Routes
 
@@ -71,6 +81,7 @@ function App() {
 ```
 
 This creates:
+
 - `/dashboard` → `<Dashboard>` with `<DashboardHome />` in the outlet
 - `/dashboard/settings` → `<Dashboard>` with `<Settings />` in the outlet
 - `/dashboard/profile` → `<Dashboard>` with `<Profile />` in the outlet
@@ -114,6 +125,23 @@ Index routes render at the parent's URL (the "default" child):
 - `/dashboard/settings` → `<Dashboard>` with `<Settings />` in outlet
 
 Index routes cannot have children.
+
+## Route Prefixes
+
+A Route with `path` but without `element` adds a path prefix to its children without introducing a layout:
+
+```tsx
+<Routes>
+  {/* /projects/... without a shared layout */}
+  <Route path="projects">
+    <Route index element={<ProjectsHome />} />
+    <Route path=":projectId" element={<Project />} />
+    <Route path=":projectId/edit" element={<EditProject />} />
+  </Route>
+</Routes>
+```
+
+This is useful when routes share a path prefix but don't need a shared layout component.
 
 ## Dynamic Segments
 
@@ -204,6 +232,7 @@ function App() {
 ```
 
 Nested routes:
+
 - Share layout code via `<Outlet />`
 - Reduce code duplication
 - Make it clear which routes are related
