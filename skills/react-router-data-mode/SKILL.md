@@ -72,7 +72,7 @@ ReactDOM.createRoot(root).render(<RouterProvider router={router} />);
 
 ```tsx
 const fetcher = useFetcher();
-const optimistic = fetcher.formData?.get("favorite") === "true" ?? isFavorite;
+const optimistic = (fetcher.formData?.get("favorite") ?? isFavorite.toString()) === "true";
 
 <fetcher.Form method="post" action={`/favorites/${id}`}>
   <button>{optimistic ? "★" : "☆"}</button>
